@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>ICT Mentor AI</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+:root {
+  --bg:#050810; --surface:#0c1120; --border:#1a2540;
+  --gold:#c9a84c; --gold-dim:#7a6230; --muted:#4a5568; --text:#e2e8f0;
+}
+html,body { height:100%; background:var(--bg); color:var(--text); font-family:'Courier New',monospace; overflow:hidden; }
+.app { display:flex; flex-direction:column; height:100dvh; max-width:540px; margin:0 auto; }
+.header { padding:14px 16px 10px; border-bottom:1px solid var(--border); flex-shrink:0; background:var(--bg); }
+.header-row { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
+.brand-sub { font-size:9px; letter-spacing:3px; color:var(--muted); }
+.brand-main { font-size:22px; font-weight:900; letter-spacing:3px; color:var(--gold); line-height:1; }
+.brand-tag { font-size:9px; letter-spacing:2px; color:var(--gold-dim); margin-top:2px; }
+.btn-reset { background:transparent; border:1px solid var(--border); color:var(--muted); font-family:'Courier New',monospace; font-size:10px; padding:7px 12px; border-radius:3px; cursor:pointer; letter-spacing:1px; }
+.selectors { display:flex; gap:8px; }
+select { background:var(--surface); border:1px solid var(--border); color:var(--text); font-family:'Courier New',monospace; font-size:11px; padding:8px 10px; border-radius:3px; outline:none; cursor:pointer; }
+#sel-pair { flex:2; } #sel-tf { flex:1; }
+.messages { flex:1; overflow-y:auto; padding:16px; display:flex; flex-direction:column; gap:14px; -webkit-overflow-scrolling:touch; }
+.msg { display:flex; }
+.msg.user { justify-content:flex-end; }
+.msg.bot  { justify-content:flex-start; }
+.bubble { max-width:90%; padding:12px 14px; font-size:12px; line-height:1.85; word-break:break-word; }
+.bubble.user { background:rgba(201,168,76,0.1); border:1px solid var(--gold-dim); border-radius:14px 14px 2px 14px; color:var(--gold); }
+.bubble.bot  { background:var(--surface); border:1px solid var(--border); border-radius:14px 14px 14px 2px; color:var(--text); }
+.bubble-label { font-size:9px; letter-spacing:2px; color:var(--muted); margin-bottom:7px; display:flex; align-items:center; gap:5px; }
+.dot { width:6px; height:6px; border-radius:50%; background:var(--gold); animation:pulse 2s infinite; }
+.typing-dots span { display:inline-block; width:5px; height:5px; border-radius:50%; background:var(--muted); margin:0 2px; animation:bounce .8s infinite; }
+.typing-dots span:nth-child(2) { animation-delay:.15s; }
+.typing-dots span:nth-child(3) { animation-delay:.3s; }
+.quick-wrap { padding:8px 16px 4px; display:flex; gap:6px; overflow-x:auto; flex-shrink:0; -webkit-overflow-scrolling:touch; scrollbar-width:none; }
+.quick-wrap::-webkit-scrollbar { display:none; }
+.qbtn { background:var(--surface); border:1px solid var(--border); color:var(--muted); font-family:'Courier New',monospace; font-size:9px; padding:6px 12px; border-radius:20px; cursor:pointer; white-space:nowrap; flex-shrink:0; letter-spacing:.5px; }
+.input-wrap { padding:8px 16px 20px; display:flex; gap:8px; flex-shrink:0; background:var(--bg); }
+textarea { flex:1; background:var(--surface); border:1px solid var(--border); color:var(--text); font-family:'Courier New',monospace; font-size:12px; padding:11px 13px; border-radius:4px; resize:none; outline:none; line-height:1.6; height:72px; }
+textarea::placeholder { color:#2a3550; }
+.btn-send { width:46px; background:rgba(201,168,76,.12); border:1px solid var(--gold); color:var(--gold); font-size:18px; border-radius:4px; cursor:pointer; flex-shrink:0; }
+.btn-send:disabled { opacity:.25; cursor:not-allowed; }
+::-webkit-scrollbar { width:4px; }
+::-webkit-scrollbar-track { background:var(--bg); }
+::-webkit-scrollbar-thumb { background:var(--border); border-radius:2px; }
+@keyframes pulse  { 0%,100%{opacity:1} 50%{opacity:.3} }
+@keyframes bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-4px)} }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <div class="header-row">
+      <div>
+        <div class="brand-sub">ICT · SMC · SMART MONEY</div>
+        <div class="brand-main">ICT MENTOR</div>
+        <div class="brand-tag">AI POWERED · ict-ment</div>
+      </div>
+      <button class="btn-reset" onclick="resetChat()">↺ RESET</button>
+    </div>
+    <div class="selectors">
+      <select id="sel-pair">
+        <option>BTCUSDT</option><option>ETHUSDT</option><option>SOLUSDT</option>
+        <option>BNBUSDT</option><option>XRPUSDT</option><option>ADAUSDT</option>
+        <option>DOGEUSDT</option><option>AVAXUSDT</option>
+        <option>EURUSD</option><option>GBPUSD</option><option>XAUUSD</option>
+        <option>Outro</option>
+      </select>
+      <select id="sel-tf">
+        <option>M1</option><option>M5</option><option>M15</option><option>M30</option>
+        <option selected>H1</option><option>H4</option><option>D1</option><option>W1</option>
+      </select>
+    </div>
+  </div>
+  <div class="messages" id="messages"></div>
+  <div class="quick-wrap">
+    <button class="qbtn" onclick="quickSend('Descreve a estrutura atual do mercado')">📊 Estrutura</button>
+    <button class="qbtn" onclick="quickSend('Há Order Block relevante para vigiar?')">🟩 Order Block</button>
+    <button class="qbtn" onclick="quickSend('Posso entrar agora ou espero?')">⚡ Entro agora?</button>
+    <button class="qbtn" onclick="quickSend('Onde está a liquidez principal?')">💧 Liquidez</button>
+    <button class="qbtn" onclick="quickSend('Qual o bias direcional hoje?')">🧭 Bias</button>
+    <button class="qbtn" onclick="quickSend('Há FVG ou IFVG relevante?')">📉 FVG</button>
+    <button class="qbtn" onclick="quickSend('Onde coloco o SL e TP?')">🎯 SL / TP</button>
+  </div>
+  <div class="input-wrap">
+    <textarea id="inp" placeholder="Descreve o setup... ex: CHoCH formado no H1, preço rejeitou OB bullish, procuro entrada no M15" onkeydown="onKey(event)"></textarea>
+    <button class="btn-send" id="btn-send" onclick="send()">▶</button>
+  </div>
+</div>
+<script>
+const SYSTEM = `És um trader ICT/SMC expert. Analisas setups com base em ICT (Inner Circle Trader) e SMC (Smart Money Concepts).
+Responde sempre em português do Brasil. Sê direto e prático como um mentor experiente.
+Nas tuas análises inclui sempre o que for relevante:
+- Bias direcional (bullish/bearish) com justificação clara
+- Estrutura de mercado: BOS, CHoCH, MSB
+- Zonas: Order Blocks, FVG, IFVG, Breaker Blocks
+- Liquidez: BSL, SSL, EQH, EQL, liquidity sweeps
+- Timing: sessões London/NY, macros ICT, killzones
+- OTE: Optimal Trade Entry 61.8-79% do fib
+- Gestão: onde colocar SL, TP, RR mínimo aceitável
+- Veredicto final em maiúsculas: LONG / SHORT / AGUARDA / FORA
+Máximo 250 palavras. Sem rodeios. Termina sempre com o veredicto em linha separada.`;
+
+let history = [];
+
+function esc(t) {
+return t.replace(/&/g,’&’).replace(/</g,’<’).replace(/>/g,’>’)
+.replace(/**(.+?)**/g,’<b>$1</b>’).replace(/\n/g,’<br>’);
+}
+function scrollBottom() { const m=document.getElementById(‘messages’); m.scrollTop=m.scrollHeight; }
+function addMsg(role,text) {
+const wrap=document.getElementById(‘messages’);
+const div=document.createElement(‘div’);
+div.className=’msg ’+(role===‘user’?‘user’:‘bot’);
+if(role===‘assistant’) {
+div.innerHTML=`<div class="bubble bot"><div class="bubble-label"><span class="dot"></span> ICT MENTOR</div>${esc(text)}</div>`;
+} else {
+div.innerHTML=`<div class="bubble user">${esc(text)}</div>`;
+}
+wrap.appendChild(div); scrollBottom();
+}
+function showTyping() {
+const wrap=document.getElementById(‘messages’);
+const div=document.createElement(‘div’);
+div.className=‘msg bot’; div.id=‘typing-msg’;
+div.innerHTML=`<div class="bubble bot"><div class="bubble-label"><span class="dot"></span> ICT MENTOR</div><div class="typing-dots"><span></span><span></span><span></span></div></div>`;
+wrap.appendChild(div); scrollBottom();
+}
+function removeTyping() { const t=document.getElementById(‘typing-msg’); if(t) t.remove(); }
+
+async function send() {
+const inp=document.getElementById(‘inp’);
+const btn=document.getElementById(‘btn-send’);
+const text=inp.value.trim();
+if(!text||btn.disabled) return;
+const pair=document.getElementById(‘sel-pair’).value;
+const tf=document.getElementById(‘sel-tf’).value;
+const userText=`[${pair} · ${tf}]\n${text}`;
+inp.value=’’; btn.disabled=true;
+addMsg(‘user’,userText);
+history.push({role:‘user’,content:userText});
+showTyping();
+try {
+const resp=await fetch(‘https://api.anthropic.com/v1/messages’,{
+method:‘POST’,
+headers:{‘Content-Type’:‘application/json’},
+body:JSON.stringify({model:‘claude-sonnet-4-20250514’,max_tokens:1000,system:SYSTEM,messages:history})
+});
+const data=await resp.json();
+const reply=data.content?.[0]?.text||‘Sem resposta. Tenta de novo.’;
+removeTyping(); addMsg(‘assistant’,reply);
+history.push({role:‘assistant’,content:reply});
+} catch(e) {
+removeTyping(); addMsg(‘assistant’,‘Erro de ligação. Verifica a internet e tenta de novo.’);
+}
+btn.disabled=false;
+}
+function quickSend(text) { document.getElementById(‘inp’).value=text; send(); }
+function onKey(e) { if(e.key===‘Enter’&&!e.shiftKey){e.preventDefault();send();} }
+function resetChat() {
+history=[]; document.getElementById(‘messages’).innerHTML=’’;
+addMsg(‘assistant’,‘Fala mano! 👋\n\nEscolhe o par e o timeframe em cima, depois descreve o que estás a ver no gráfico.\n\nEx: “CHoCH formado no H1, preço está a testar OB bullish — entro?”\n\nVamos analisar juntos.’);
+}
+resetChat();
+</script>
+
+</body>
+</html>
